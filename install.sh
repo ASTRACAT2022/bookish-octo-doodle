@@ -1,6 +1,22 @@
 #!/bin/bash
 
-# Build the DNS server
+# Install Go if not installed
+if ! command -v go &> /dev/null; then
+    echo "Installing Go..."
+    # Download latest Go
+    curl -O https://dl.google.com/go/$(curl -s https://go.dev/VERSION?m=text).linux-amd64.tar.gz
+    # Extract and install
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf go*.linux-amd64.tar.gz
+    rm go*.linux-amd64.tar.gz
+    # Add to PATH
+    echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile
+    source /etc/profile
+fi
+
+# Download dependencies and build the DNS server
+echo "Building DNS resolver..."
+go mod download
 go build -o /usr/local/bin/dns-resolver cmd/main.go
 
 # Create systemd service file

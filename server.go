@@ -56,7 +56,7 @@ func (s *Server) handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	// Проверяем кэш перед резолвингом
-	if cached := s.cache.get(r.Question[0]); cached != nil {
+	if cached := s.cache.get(r.Question[0], r.Id); cached != nil {
 		w.WriteMsg(cached)
 		return
 	}
@@ -75,13 +75,15 @@ func (s *Server) handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(resp.Msg)
 }
 
-func (c *DNSCache) get(q dns.Question) *dns.Msg {
+func (c *DNSCache) get(q dns.Question, requestID uint16) *dns.Msg {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	key := fmt.Sprintf("%s-%d-%d", q.Name, q.Qtype, q.Qclass)
 	if entry, exists := c.items[key]; exists && time.Now().Before(entry.expires) {
-		return entry.msg.Copy()
+		copy := entry.msg.Copy()
+		copy.Id = requestID
+		return copy
 	}
 	return nil
 }
